@@ -1,3 +1,4 @@
+#Importar las librerias requeridas
 import streamlit as st
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
@@ -10,15 +11,18 @@ from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
 
+#Función para extraer el conteniudo de los archivos PDF
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
+        for num_page, page in enumerate(pdf_reader.pages):
+            if num_page == len(pdf_reader.pages) - 1:
+                text += '\n'
             text += page.extract_text()
     return text
 
-
+ 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
         separator="\n",
@@ -63,11 +67,11 @@ def handle_userinput(user_question):
             st.write(bot_template.replace(
                 "{{MSG}}", message.content), unsafe_allow_html=True)
 
-
+#Principal function
 def main():
     load_dotenv()
-    st.set_page_config(page_title="Chat with multiple PDFs",
-                       page_icon=":books:")
+    st.set_page_config(page_title="TalentGenius",
+                       page_icon="🧠")
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
@@ -75,29 +79,36 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("Chat with multiple PDFs :books:")
-    user_question = st.text_input("Ask a question about your documents:")
+    st.header("Chatea con el genio del reclutamiento 🤖")
+    user_question = st.text_input("Has preguntas relacionadas con los archivos de tus candidatos")
     if user_question:
         handle_userinput(user_question)
 
+    #Barra lateral
     with st.sidebar:
-        st.subheader("Your documents")
+        st.subheader("Tus documentos")
         pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
-        if st.button("Process"):
-            with st.spinner("Processing"):
-                # get pdf text
-                raw_text = get_pdf_text(pdf_docs)
+            "Carga las hojas de vida de tus candidatos y luego da clic en analizar", accept_multiple_files=True)
+        if pdf_docs:
+            button_analyse = st.button("Analizar")
+            if button_analyse:
+                with st.spinner("Analizando"):
+                    # get pdf text
+                    raw_text = get_pdf_text(pdf_docs)
+                    st.write(raw_text)
 
-                # get the text chunks
-                text_chunks = get_text_chunks(raw_text)
+                    # get the text chunks
+                    text_chunks = get_text_chunks(raw_text)
 
-                # create vector store
-                vectorstore = get_vectorstore(text_chunks)
+                    # create vector store
+                    vectorstore = get_vectorstore(text_chunks)
 
-                # create conversation chain
-                st.session_state.conversation = get_conversation_chain(
-                    vectorstore)
+                    # create conversation chain
+                    st.session_state.conversation = get_conversation_chain(
+                        vectorstore)
+                    
+                    #Notificación al usuario
+                    st.write("¡Archivos analizados exitosamente!, ahora puedes realizar tus consultas")
 
 
 if __name__ == '__main__':
