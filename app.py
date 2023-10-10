@@ -49,6 +49,14 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
+def new_docs():
+    st.session_state.bttn_visible=True
+    st.session_state.process_docs = False
+
+def btn_callback():
+    st.session_state.bttn_visible = False
+    st.session_state.process_docs = True
+
 # Función principal de la app
 def main():
     # Configuración de la app
@@ -61,6 +69,10 @@ def main():
         st.session_state.conversation = []
     if "chat_history" not in st.session_state:
             st.session_state.chat_history = []
+    if 'bttn_visible' not in st.session_state:
+        st.session_state.bttn_visible = False
+    if 'process_docs' not in st.session_state:
+        st.session_state.process_docs = False
     
     # Contenedor de chat
     if user_question := st.chat_input("Has preguntas relacionadas con los archivos de tus candidatos"):
@@ -81,24 +93,25 @@ def main():
     with st.sidebar:
         # Cargue de documentos
         st.header("Tus documentos")
-        pdf_docs = st.file_uploader("Carga las hojas de vida de tus candidatos y luego da clic en analizar", accept_multiple_files=True)
+        pdf_docs = st.file_uploader("Carga las hojas de vida de tus candidatos y luego da clic en analizar", accept_multiple_files=True,on_change=new_docs)
 
         # Condición para evaluar si se subieron documentos
-        if pdf_docs:
-            button_analyse = st.button("Analizar")
-            if button_analyse:
-                # Animación de carga y procesamiento de los archivos
-                with st.spinner("Analizando"):
-                    # Extraer y concatenar texto de los pdf
-                    raw_text = get_pdf_text(pdf_docs)
-                    # División del texto en chunks
-                    text_chunks = get_text_chunks(raw_text)
-                    # Creación de la base de datos de vectores
-                    vectorstore = get_vectorstore(text_chunks)
-                    # Se inicializa la conversación con el modelo de chat
-                    st.session_state.conversation = get_conversation_chain(vectorstore)
-                    # Se notifica al usuario que se han procesado los archivos
-                    st.write("¡Archivos analizados exitosamente!, ahora puedes realizar tus consultas")
+        if st.session_state.bttn_visible:
+            st.button("Analizar",on_click=btn_callback)
+
+        if st.session_state.process_docs:
+            # Animación de carga y procesamiento de los archivos
+            with st.spinner("Analizando"):
+                # Extraer y concatenar texto de los pdf
+                raw_text = get_pdf_text(pdf_docs)
+                # División del texto en chunks
+                text_chunks = get_text_chunks(raw_text)
+                # Creación de la base de datos de vectores
+                vectorstore = get_vectorstore(text_chunks)
+                # Se inicializa la conversación con el modelo de chat
+                st.session_state.conversation = get_conversation_chain(vectorstore)
+                # Se notifica al usuario que se han procesado los archivos
+                st.write("¡Archivos analizados exitosamente!, ahora puedes realizar tus consultas")
 
 if __name__ == '__main__':
     main()
