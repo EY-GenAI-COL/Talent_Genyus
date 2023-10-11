@@ -14,12 +14,15 @@ from langchain.chains import ConversationalRetrievalChain
 # Función para extraer el contenido de los archivos PDF
 def get_pdf_text(pdf_docs):
     text = ""
+    n=1
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for num_page, page in enumerate(pdf_reader.pages):
             if num_page == len(pdf_reader.pages) - 1:
                 text += '\n\n'
+            text += "Candidato" + str(n) + "\n"
             text += page.extract_text()
+        n=n+1
     return text
 
 # Función para crear los chunks
@@ -117,6 +120,7 @@ def main():
                 st.session_state.process_docs = False
                 #Habilita el chat 
                 enable_chat()
+                st.write(text_chunks)
 
     # Entrada de texto del chat
     chat_input=st.chat_input("Has preguntas relacionadas con los archivos de tus candidatos",disabled=st.session_state.chat_off)
