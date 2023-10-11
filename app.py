@@ -63,6 +63,9 @@ def clear_chat():
     st.session_state.conversation = []
     st.session_state.chat_history = []
 
+def enable_chat():
+    st.session_state.chat_off = False
+
 # Función principal de la app
 def main():
     # Configuración de la app
@@ -80,22 +83,9 @@ def main():
         st.session_state.process_docs = False
     if 'pdf_docs' not in st.session_state:
         st.session_state.pdf_docs = False
+    if 'chat_off' not in st.session_state:
+        st.session_state.chat_off = True
     
-    # Contenedor de chat
-    if user_question := st.chat_input("Has preguntas relacionadas con los archivos de tus candidatos"):
-        # Llamado al modelo de chat
-        response = st.session_state.conversation({'question': user_question})
-
-        # Asignación de pregunta y respuesta en el chat
-        st.session_state.chat_history.extend([
-            {"role": "user", "content": response['question']},
-            {"role": "assistant", "content": response['answer']}])
-        
-        # Loop para imprimir los mensajes en el chat
-        for message in st.session_state.chat_history:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
     # Barra lateral de la App
     with st.sidebar:
         # Cargue de documentos
@@ -124,6 +114,27 @@ def main():
                 st.write("¡Archivos analizados exitosamente!, ahora puedes realizar tus consultas")
                 # Evita volver a entrar al loop
                 st.session_state.process_docs = False
+                #Habilita el chat 
+                enable_chat()
+
+    # Entrada de texto del chat
+    chat_input=st.chat_input("Has preguntas relacionadas con los archivos de tus candidatos",disabled=st.session_state.chat_off)
+    # Contenedor de chat
+    if user_question := chat_input:
+        # Llamado al modelo de chat
+        response = st.session_state.conversation({'question': user_question})
+
+        # Asignación de pregunta y respuesta en el chat
+        st.session_state.chat_history.extend([
+            {"role": "user", "content": response['question']},
+            {"role": "assistant", "content": response['answer']}])
+        
+        # Loop para imprimir los mensajes en el chat
+        for message in st.session_state.chat_history:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+    
 
 if __name__ == '__main__':
     main()
