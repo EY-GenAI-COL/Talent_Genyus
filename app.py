@@ -8,7 +8,9 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+# from PIL import Image 
 
+# image = Image.open('ey-black.jpg')
 # Función para extraer el contenido de los archivos PDF
 def get_pdf_text(pdf_docs):
     text = ""
@@ -57,13 +59,16 @@ def btn_callback():
     st.session_state.bttn_visible = False
     st.session_state.process_docs = True
 
+def clear_chat():
+    st.session_state.conversation = []
+    st.session_state.chat_history = []
+
 # Función principal de la app
 def main():
     # Configuración de la app
     load_dotenv()
     st.set_page_config(page_title="TalentGenius", page_icon="🧠")
     st.header("Chatea con el genio del reclutamiento 🤖")
-
     # Inicialización de las sesiones de estado para la conversación
     if "conversation" not in st.session_state:
         st.session_state.conversation = []
@@ -73,6 +78,8 @@ def main():
         st.session_state.bttn_visible = False
     if 'process_docs' not in st.session_state:
         st.session_state.process_docs = False
+    if 'pdf_docs' not in st.session_state:
+        st.session_state.pdf_docs = False
     
     # Contenedor de chat
     if user_question := st.chat_input("Has preguntas relacionadas con los archivos de tus candidatos"):
@@ -93,8 +100,9 @@ def main():
     with st.sidebar:
         # Cargue de documentos
         st.header("Tus documentos")
-        pdf_docs = st.file_uploader("Carga las hojas de vida de tus candidatos y luego da clic en analizar", accept_multiple_files=True,on_change=new_docs)
-
+        st.session_state.pdf_docs = st.file_uploader("Carga las hojas de vida de tus candidatos y luego da clic en analizar", accept_multiple_files=True,on_change=new_docs)
+        if not(st.session_state.pdf_docs):
+            st.session_state.bttn_visible = False
         # Condición para evaluar si se subieron documentos
         if st.session_state.bttn_visible:
             st.button("Analizar",on_click=btn_callback)
@@ -102,8 +110,10 @@ def main():
         if st.session_state.process_docs:
             # Animación de carga y procesamiento de los archivos
             with st.spinner("Analizando"):
+                # Limpia el canal del chat
+                clear_chat()
                 # Extraer y concatenar texto de los pdf
-                raw_text = get_pdf_text(pdf_docs)
+                raw_text = get_pdf_text(st.session_state.pdf_docs)
                 # División del texto en chunks
                 text_chunks = get_text_chunks(raw_text)
                 # Creación de la base de datos de vectores
@@ -112,6 +122,8 @@ def main():
                 st.session_state.conversation = get_conversation_chain(vectorstore)
                 # Se notifica al usuario que se han procesado los archivos
                 st.write("¡Archivos analizados exitosamente!, ahora puedes realizar tus consultas")
+                # Evita volver a entrar al loop
+                st.session_state.process_docs = False
 
 if __name__ == '__main__':
     main()
