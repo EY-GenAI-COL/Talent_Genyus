@@ -20,7 +20,7 @@ def get_pdf_text(pdf_docs):
         for num_page, page in enumerate(pdf_reader.pages):
             if num_page == len(pdf_reader.pages) - 1:
                 text += '\n\n'
-            text += "Candidato" + str(n) + "\n"
+            text += "Candidato " + str(n) + "\n"
             text += page.extract_text()
         n=n+1
     return text
@@ -44,9 +44,8 @@ def get_vectorstore(text_chunks):
 
 # Función para llamar al modelo de chat
 def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI(model='gpt-3.5-turbo-0613')
-    memory = ConversationBufferMemory(
-        memory_key='chat_history', return_messages=True)
+    llm = ChatOpenAI(model='gpt-3.5-turbo-16k')
+    memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=vectorstore.as_retriever(),
@@ -61,10 +60,16 @@ def new_docs():
 def btn_callback():
     st.session_state.bttn_visible = False
     st.session_state.process_docs = True
+    st.session_state.clear_btn = True
 
 def clear_chat():
     st.session_state.conversation = []
     st.session_state.chat_history = []
+
+def clear_btn():
+    st.session_state.conversation = []
+    st.session_state.chat_history = []
+    st.session_state.conversation = get_conversation_chain(st.session_state.vectorstore)
 
 def enable_chat():
     st.session_state.chat_off = False
@@ -88,6 +93,10 @@ def main():
         st.session_state.pdf_docs = False
     if 'chat_off' not in st.session_state:
         st.session_state.chat_off = True
+    if 'clear_btn' not in st.session_state:
+        st.session_state.clear_btn = False
+    if 'vectorstore' not in st.session_state:
+        st.session_state.vectorstore = []
     
     # Barra lateral de la App
     with st.sidebar:
@@ -100,28 +109,30 @@ def main():
         if st.session_state.bttn_visible:
             st.button("Analizar",on_click=btn_callback)
 
-        if st.session_state.process_docs:
+        if st.session_state.process_docs:          
             # Animación de carga y procesamiento de los archivos
             with st.spinner("Analizando"):
                 # Limpia el canal del chat
                 clear_chat()
                 # Extraer y concatenar texto de los pdf
                 raw_text = get_pdf_text(st.session_state.pdf_docs)
-                st.write(raw_text)
+                # st.write(raw_text)
                 # División del texto en chunks
                 text_chunks = get_text_chunks(raw_text)
                 # Creación de la base de datos de vectores
-                vectorstore = get_vectorstore(text_chunks)
+                st.session_state.vectorstore = get_vectorstore(text_chunks)
                 # Se inicializa la conversación con el modelo de chat
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                st.session_state.conversation = get_conversation_chain(st.session_state.vectorstore)
                 # Se notifica al usuario que se han procesado los archivos
                 st.write("¡Archivos analizados exitosamente!, ahora puedes realizar tus consultas")
                 # Evita volver a entrar al loop
                 st.session_state.process_docs = False
                 #Habilita el chat 
                 enable_chat()
-                st.write(text_chunks)
-
+                # st.write(text_chunks)
+        if st.session_state.clear_btn:
+            st.button("Limpiar Chat",on_click=clear_btn)
+    
     # Entrada de texto del chat
     chat_input=st.chat_input("Has preguntas relacionadas con los archivos de tus candidatos",disabled=st.session_state.chat_off)
     # Contenedor de chat
