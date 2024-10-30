@@ -123,7 +123,7 @@ def main():
                 clear_chat()
                 # Extraer y concatenar texto de los pdf
                 raw_text = get_pdf_text(st.session_state.pdf_docs)
-                # st.write(raw_text)
+                st.write(raw_text)
                 # División del texto en chunks
                 text_chunks = get_text_chunks(raw_text)
                 # Creación de la base de datos de vectores
